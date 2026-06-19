@@ -1,0 +1,36 @@
+[package]
+name = "agdu"
+version = "0.1.0"
+edition = "2024"
+description = "Amy's Game Dev Utilities"
+license = "MIT OR Apache-2.0"
+categories = ["games", "game-development"]
+keywords = []
+repository = "https://github.com/AmyGilhespy/agdu"
+
+[dependencies]
+ahash = "0.8.12"
+backtrace = { version = "0.3.76", optional = true }
+bitcode = "0.6.9"
+bitfields = "3.0.0"
+bitvec = "1.1.1"
+dashmap = "6.2.1"
+diceware_wordlists = { version = "1.2.3", features = ["serde"] }
+fasteval = "0.2.4"
+godot = { version = "0.5.3", optional = true }
+hashbrown = { version = "0.17.1", features = ["serde"] }
+lz4_flex = "0.13.1"
+rand = "0.10.1"
+ron = "0.12.1"
+serde = { version = "1.0.228", optional = true, features = [
+    "derive",
+    "serde_derive",
+] }
+thiserror = "2.0.18"
+wyrand = "0.4.1"
+
+[features]
+default = ["basic"]
+basic = []
+godot = ["dep:godot"]
+backtrace = ["dep:backtrace"]
