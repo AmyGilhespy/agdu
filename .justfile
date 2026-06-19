@@ -14,15 +14,30 @@ build:
     clear
     cargo build {{ if profile == "release" { "--release" } else { "" } }}
 
+# Shorthand for building with godot crate feature
+build-godot:
+    clear
+    cargo build --features=godot
+
 # Shorthand for building in debug mode
 build-debug:
     clear
     cargo build
 
+# Shorthand for building in debug mode with godot crate feature
+build-debug-godot:
+    clear
+    cargo build --features=godot
+
 # Shorthand for building in release mode
 build-release:
     clear
     cargo build --release
+
+# Shorthand for building in release mode with godot crate feature
+build-release-godot:
+    clear
+    cargo build --release --features=godot
 
 # Clear cache, delete temps, and delete the built files.
 clean:
