@@ -1,12 +1,12 @@
 [package]
 name = "agdu"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 description = "Amy's Game Dev Utilities"
-license = "MIT OR Apache-2.0"
-categories = ["games", "game-development"]
-keywords = []
 repository = "https://github.com/AmyGilhespy/agdu"
+license = "MIT OR Apache-2.0"
+keywords = []
+categories = ["game-development", "games"]
 
 [dependencies]
 ahash = "0.8.12"
@@ -29,7 +29,7 @@ wyrand = "0.4.1"
 
 [features]
 default = ["godot"]
-stdout = []
-stderr = []
-godot = ["dep:godot"]
 backtrace = ["dep:backtrace"]
+godot = ["dep:godot"]
+stderr = []
+stdout = []

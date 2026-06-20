@@ -1,28 +1,29 @@
 #[macro_export]
 macro_rules! info {
 	($($arg:tt)*) => {
-			emit_info(file!(), line!(), column!(), ::std::format!($($arg)*));
+		emit_info(file!(), line!(), column!(), ::std::format!($($arg)*));
 	};
 }
 
 #[macro_export]
 macro_rules! warn {
 	($($arg:tt)*) => {
-			emit_warn(file!(), line!(), column!(), ::std::format!($($arg)*));
+		emit_warn(file!(), line!(), column!(), ::std::format!($($arg)*));
 	};
 }
 
 #[macro_export]
 macro_rules! error {
 	($($arg:tt)*) => {
-			emit_error(file!(), line!(), column!(), ::std::format!($($arg)*));
+		emit_error(file!(), line!(), column!(), ::std::format!($($arg)*));
 	};
 }
 
 #[macro_export]
 macro_rules! fatal {
 	($($arg:tt)*) => {
-			emit_fatal(file!(), line!(), column!(), ::std::format!($($arg)*));
+		emit_fatal(file!(), line!(), column!(), ::std::format!($($arg)*));
+		::std::unreachable!();
 	};
 }
 
