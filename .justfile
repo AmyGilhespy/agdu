@@ -76,7 +76,7 @@ ci:
 	cargo build --features=godot
 	cargo build --all-features
 
-publish-dry-run: ci
+publish-dry-run: fmt ci
 	cargo publish -p agdu --dry-run
 
 publish-for-real: publish-dry-run

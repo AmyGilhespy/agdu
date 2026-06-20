@@ -10,6 +10,7 @@ macro_rules! info {
 			eprintln!("{m}");
 			#[cfg(feature = "stdout")]
 			println!("{m}");
+			#[cfg(not(test))]
 			#[cfg(feature = "godot")]
 			$crate::godot::print(m.as_str());
 			let _ = m;
@@ -29,8 +30,10 @@ macro_rules! warn {
 			eprintln!("{m}");
 			#[cfg(feature = "stdout")]
 			println!("{m}");
+			#[cfg(not(test))]
 			#[cfg(feature = "godot")]
 			$crate::godot::push_warning(m.as_str());
+			#[cfg(not(test))]
 			#[cfg(feature = "godot")]
 			$crate::godot::print(m.as_str());
 			let _ = m;
@@ -50,8 +53,10 @@ macro_rules! error {
 			eprintln!("{m}");
 			#[cfg(feature = "stdout")]
 			println!("{m}");
+			#[cfg(not(test))]
 			#[cfg(feature = "godot")]
 			$crate::godot::push_error(m.as_str());
+			#[cfg(not(test))]
 			#[cfg(feature = "godot")]
 			$crate::godot::print(m.as_str());
 			let _ = m;
@@ -71,13 +76,35 @@ macro_rules! fatal {
 			eprintln!("{m}");
 			#[cfg(feature = "stdout")]
 			println!("{m}");
+			#[cfg(not(test))]
 			#[cfg(feature = "godot")]
 			$crate::godot::push_error(m.as_str());
+			#[cfg(not(test))]
 			#[cfg(feature = "godot")]
 			$crate::godot::print(m.as_str());
+			#[cfg(not(test))]
 			#[cfg(feature = "godot")]
 			$crate::godot::quit(1);
 			::std::panic!("{m}");
 		}
 	};
+}
+
+#[cfg(test)]
+mod tests {
+	#[allow(unused_imports)]
+	use super::*;
+
+	#[test]
+	fn test_debugging_macros_except_fatal() {
+		info!("info {}", 1);
+		warn!("warn {}", 2);
+		error!("error {}", 3);
+	}
+
+	#[test]
+	#[should_panic]
+	fn test_fatal() {
+		fatal!("fatal {}", 4);
+	}
 }
