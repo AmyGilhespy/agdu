@@ -30,11 +30,6 @@ macro_rules! fatal {
 #[allow(clippy::needless_pass_by_value)]
 pub fn emit_info(file: &str, line: u32, column: u32, message: String) {
 	let message = ::std::format!("[{file}:{line}:{column}]: {message}");
-	#[cfg(feature = "backtrace")]
-	let message = ::std::format!(
-		"{message}\n=== BACKTRACE ===\n{:?}",
-		backtrace::Backtrace::new()
-	);
 	#[cfg(feature = "stderr")]
 	eprintln!("{message}");
 	#[cfg(feature = "stdout")]
@@ -48,11 +43,6 @@ pub fn emit_info(file: &str, line: u32, column: u32, message: String) {
 #[allow(clippy::needless_pass_by_value)]
 pub fn emit_warn(file: &str, line: u32, column: u32, message: String) {
 	let message = ::std::format!("[{file}:{line}:{column}]: {message}");
-	#[cfg(feature = "backtrace")]
-	let message = ::std::format!(
-		"{message}\n=== BACKTRACE ===\n{:?}",
-		backtrace::Backtrace::new()
-	);
 	#[cfg(feature = "stderr")]
 	eprintln!("{message}");
 	#[cfg(feature = "stdout")]
