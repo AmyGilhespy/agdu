@@ -1,6 +1,6 @@
-use std::sync::LazyLock;
+use ahash::AHashMap;
 
-use hashbrown::HashMap;
+use std::sync::LazyLock;
 
 use crate::colors::RgbColor888;
 
@@ -22,14 +22,14 @@ pub const TAILWIND_HUES_NEUTRAL: [&str; 9] = [
 pub const TAILWIND_SHADES: [u16; 11] = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 
 pub static TAILWIND_COLORS: LazyLock<TailwindColors> = LazyLock::new(|| {
-	let mut all = HashMap::new();
-	let mut hues = HashMap::new();
-	let mut chromatic_hues = HashMap::new();
-	let mut neutral_hues = HashMap::new();
+	let mut all = AHashMap::new();
+	let mut hues = AHashMap::new();
+	let mut chromatic_hues = AHashMap::new();
+	let mut neutral_hues = AHashMap::new();
 
 	let mut lines = TAILWIND_COLORS_HEX.lines();
 	for class in TAILWIND_HUES {
-		let mut shades = HashMap::new();
+		let mut shades = AHashMap::new();
 		for shade in TAILWIND_SHADES {
 			let line = lines.next().expect("Out of data");
 			let rgb = RgbColor888::from_rgb24(
@@ -395,7 +395,7 @@ const TAILWIND_COLORS_HEX: &str = include_str!("tailwind-4.2.hex");
 
 #[derive(Clone, Debug)]
 pub struct TailwindHue {
-	pub all: HashMap<u16, RgbColor888>,
+	pub all: AHashMap<u16, RgbColor888>,
 	pub shade50: RgbColor888,
 	pub shade100: RgbColor888,
 	pub shade200: RgbColor888,
@@ -412,10 +412,10 @@ pub struct TailwindHue {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct TailwindColors {
-	pub all: HashMap<String, RgbColor888>,
-	pub hues: HashMap<String, TailwindHue>,
-	pub chromatic_hues: HashMap<String, TailwindHue>,
-	pub neutral_hues: HashMap<String, TailwindHue>,
+	pub all: AHashMap<String, RgbColor888>,
+	pub hues: AHashMap<String, TailwindHue>,
+	pub chromatic_hues: AHashMap<String, TailwindHue>,
+	pub neutral_hues: AHashMap<String, TailwindHue>,
 	pub red: TailwindHue,
 	pub orange: TailwindHue,
 	pub amber: TailwindHue,
