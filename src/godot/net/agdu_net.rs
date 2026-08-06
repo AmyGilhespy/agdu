@@ -1,5 +1,8 @@
 // VERY WIP
 
+#![allow(clippy::similar_names)]
+
+#[allow(clippy::wildcard_imports)]
 use crate::{debugging::*, error, info};
 use ahash::AHashMap;
 use godot::classes::web_socket_peer::State as WebSocketPeerState;
@@ -28,13 +31,13 @@ pub struct AgduNet {
 
 	rtc_mp: Gd<WebRtcMultiplayerPeer>,
 
-	_own_peer_id: i32,
-	_own_server_peer_id: GString,
-	_is_host: bool,
-	_lobby_password: GString,
-	_peer_id_map: AHashMap<String, i32>,
-	_next_godot_id: i32,
-	_last_keepalive_ping: u64,
+	own_peer_id: i32,
+	own_server_peer_id: GString,
+	is_host: bool,
+	lobby_password: GString,
+	peer_id_map: AHashMap<String, i32>,
+	next_godot_id: i32,
+	last_keepalive_ping: u64,
 
 	base: Base<Node>,
 }
@@ -51,13 +54,13 @@ impl INode for AgduNet {
 
 			rtc_mp: WebRtcMultiplayerPeer::new_gd(),
 
-			_own_peer_id: 0,
-			_own_server_peer_id: "".to_godot_owned(),
-			_is_host: false,
-			_lobby_password: "".to_godot_owned(),
-			_peer_id_map: AHashMap::new(),
-			_next_godot_id: 2,
-			_last_keepalive_ping: 0,
+			own_peer_id: 0,
+			own_server_peer_id: "".to_godot_owned(),
+			is_host: false,
+			lobby_password: "".to_godot_owned(),
+			peer_id_map: AHashMap::new(),
+			next_godot_id: 2,
+			last_keepalive_ping: 0,
 
 			base,
 		}
@@ -71,7 +74,7 @@ impl INode for AgduNet {
 					"WebSocket connection failed: {} - {}",
 					self.code, self.reason
 				);
-				self._disconnected();
+				self.disconnected();
 				self.old_state = state;
 				return;
 			}
@@ -84,23 +87,23 @@ impl INode for AgduNet {
 			}
 
 			while state == WebSocketPeerState::OPEN && self.ws.get_available_packet_count() > 0 {
-				let _ = self._parse_msg();
+				let _ = self.parse_msg();
 			}
 
 			if state != self.old_state && state == WebSocketPeerState::CLOSED {
 				self.code = self.ws.get_close_code();
 				self.reason = self.ws.get_close_reason();
 				info!("WebSocket closed: {} - {}", self.code, self.reason);
-				self._disconnected();
+				self.disconnected();
 			}
 
 			self.old_state = state;
 
 			if self.keepalive_pings {
 				let now = Time::singleton().get_ticks_msec();
-				if now >= self._last_keepalive_ping + 30000 {
-					self._last_keepalive_ping = now;
-					self._send_keepalive_ping();
+				if now >= self.last_keepalive_ping + 30000 {
+					self.last_keepalive_ping = now;
+					self.send_keepalive_ping();
 				}
 			}
 		}
@@ -115,16 +118,15 @@ impl AgduNet {
 	#[signal]
 	fn toast(message: GString);
 
-
 	#[allow(dead_code)]
 	fn start(&mut self, url: &str, _room_code: &str, password: &str, as_host: bool) {
 		self.stop();
-		self._is_host = as_host;
+		self.is_host = as_host;
 		info!(
 			"Starting as {}, connecting to: {url}",
 			if as_host { "host" } else { "client" }
 		);
-		self._connect_to_url(url, password);
+		self.connect_to_url(url, password);
 		self.keepalive_pings = true;
 	}
 
@@ -136,7 +138,7 @@ impl AgduNet {
 		multiplayer.set_multiplayer_peer(none);
 		self.rtc_mp.close();
 		self.rtc_mp = WebRtcMultiplayerPeer::new_gd();
-		self._close();
+		self.close();
 	}
 
 	#[allow(dead_code)]
@@ -144,65 +146,61 @@ impl AgduNet {
 		self.keepalive_pings = false;
 	}
 
-
-	fn _answer_received(&mut self, godot_id: i32, answer: &str) {
-		if self.rtc_mp.has_peer(godot_id) {
-			if let Some(connection) = self.rtc_mp.get_peer(godot_id).get("connection")
-				&& let Ok(mut connection) = connection.try_to::<Gd<WebRtcPeerConnection>>()
-			{
-				connection.set_remote_description("answer", answer);
-			}
+	fn answer_received(&mut self, godot_id: i32, answer: &str) {
+		if self.rtc_mp.has_peer(godot_id)
+			&& let Some(connection) = self.rtc_mp.get_peer(godot_id).get("connection")
+			&& let Ok(mut connection) = connection.try_to::<Gd<WebRtcPeerConnection>>()
+		{
+			connection.set_remote_description("answer", answer);
 		}
 	}
 
-	fn _assign_godot_id(&mut self, server_id: &str, role_is_host: bool) -> i32 {
-		if let Some(existing) = self._peer_id_map.get(server_id) {
+	fn assign_godot_id(&mut self, server_id: &str, role_is_host: bool) -> i32 {
+		if let Some(existing) = self.peer_id_map.get(server_id) {
 			if role_is_host == (*existing == 1) {
 				return *existing;
 			}
-			self._peer_id_map.remove(server_id);
+			self.peer_id_map.remove(server_id);
 		}
 
 		if role_is_host {
-			self._peer_id_map.insert(server_id.to_owned(), 1);
+			self.peer_id_map.insert(server_id.to_owned(), 1);
 			return 1;
 		}
 
-		let godot_id = self._next_godot_id;
-		self._next_godot_id += 1;
-		self._peer_id_map.insert(server_id.to_owned(), godot_id);
+		let godot_id = self.next_godot_id;
+		self.next_godot_id += 1;
+		self.peer_id_map.insert(server_id.to_owned(), godot_id);
 		godot_id
 	}
 
-	fn _candidate_received(&mut self, godot_id: i32, mid: &str, index: i32, sdp: &str) {
-		if self.rtc_mp.has_peer(godot_id) {
-			if let Some(connection) = self.rtc_mp.get_peer(godot_id).get("connection")
-				&& let Ok(mut connection) = connection.try_to::<Gd<WebRtcPeerConnection>>()
-			{
-				connection.add_ice_candidate(mid, index, sdp);
-			}
+	fn candidate_received(&mut self, godot_id: i32, mid: &str, index: i32, sdp: &str) {
+		if self.rtc_mp.has_peer(godot_id)
+			&& let Some(connection) = self.rtc_mp.get_peer(godot_id).get("connection")
+			&& let Ok(mut connection) = connection.try_to::<Gd<WebRtcPeerConnection>>()
+		{
+			connection.add_ice_candidate(mid, index, sdp);
 		}
 	}
 
-	fn _close(&mut self) {
+	fn close(&mut self) {
 		self.ws.close();
 	}
 
-	fn _connect_to_url(&mut self, url: &str, password: &str) {
-		self._close();
+	fn connect_to_url(&mut self, url: &str, password: &str) {
+		self.close();
 		self.code = 1000;
 		self.reason = "Unknown".to_godot_owned();
-		self._lobby_password = password.to_godot_owned();
+		self.lobby_password = password.to_godot_owned();
 		self.ws.connect_to_url(url);
 	}
 
-	fn _connected(&mut self, godot_id: i32) {
-		let result;
-		if self._is_host || godot_id == 1 {
-			result = self.rtc_mp.create_server();
+	fn connected(&mut self, godot_id: i32) {
+		let result = if self.is_host || godot_id == 1 {
+			self.rtc_mp.create_server()
 		} else {
-			result = self.rtc_mp.create_client(godot_id);
-		}
+			self.rtc_mp.create_client(godot_id)
+		};
 
 		if result == GodotError::OK {
 			let Some(mut multiplayer) = self.base().get_multiplayer() else {
@@ -215,14 +213,15 @@ impl AgduNet {
 		}
 	}
 
-	fn _create_peer(&mut self, godot_id: i32) -> Gd<WebRtcPeerConnection> {
+	fn create_peer(&mut self, godot_id: i32) -> Gd<WebRtcPeerConnection> {
 		let mut peer = WebRtcPeerConnection::new_gd();
 
-		if self.rtc_mp.get_connection_status() == ConnectionStatus::CONNECTED {
-			if !self._is_host && godot_id != 1 {
-				error!("Client tried to add non-host peer {godot_id}");
-				return peer;
-			}
+		if self.rtc_mp.get_connection_status() == ConnectionStatus::CONNECTED
+			&& !self.is_host
+			&& godot_id != 1
+		{
+			error!("Client tried to add non-host peer {godot_id}");
+			return peer;
 		}
 
 		let mut configuration = VarDictionary::new();
@@ -246,7 +245,7 @@ impl AgduNet {
 		peer.signals().session_description_created().connect_other(
 			self,
 			move |this, type_, sdp| {
-				this._offer_created(
+				this.offer_created(
 					type_.to_string().as_str(),
 					sdp.to_string().as_str(),
 					godot_id,
@@ -256,7 +255,7 @@ impl AgduNet {
 		peer.signals().ice_candidate_created().connect_other(
 			self,
 			move |this, media, index, name| {
-				this._new_ice_candidate(
+				this.new_ice_candidate(
 					media.to_string().as_str(),
 					index,
 					name.to_string().as_str(),
@@ -270,27 +269,27 @@ impl AgduNet {
 			return peer;
 		}
 
-		if self._is_host {
+		if self.is_host {
 			peer.create_offer();
 		}
 
 		peer
 	}
 
-	fn _disconnected(&mut self) {
+	fn disconnected(&mut self) {
 		info!("Disconnected: {}: {}", self.code, self.reason);
 		self.stop();
 	}
 
-	fn _get_godot_id(&self, server_id: &str) -> Option<i32> {
-		if let Some(id) = self._peer_id_map.get(server_id) {
+	fn get_godot_id(&self, server_id: &str) -> Option<i32> {
+		if let Some(id) = self.peer_id_map.get(server_id) {
 			return Some(*id);
 		}
 		None
 	}
 
-	fn _get_server_id(&self, godot_id: i32) -> Option<String> {
-		for (k, v) in self._peer_id_map.iter() {
+	fn get_server_id(&self, godot_id: i32) -> Option<String> {
+		for (k, v) in &self.peer_id_map {
 			if *v == godot_id {
 				return Some(k.clone());
 			}
@@ -298,11 +297,11 @@ impl AgduNet {
 		None
 	}
 
-	fn _new_ice_candidate(&mut self, mid: &str, index: i64, sdp: &str, godot_id: i32) {
-		self._send_candidate(godot_id, mid, index, sdp);
+	fn new_ice_candidate(&mut self, mid: &str, index: i64, sdp: &str, godot_id: i32) {
+		self.send_candidate(godot_id, mid, index, sdp);
 	}
 
-	fn _offer_created(&mut self, type_: &str, data: &str, godot_id: i32) {
+	fn offer_created(&mut self, type_: &str, data: &str, godot_id: i32) {
 		if !self.rtc_mp.has_peer(godot_id) {
 			error!("Peer {godot_id} not in rtc_mp, can't set local description");
 			return;
@@ -313,32 +312,31 @@ impl AgduNet {
 		{
 			connection.set_local_description(type_, data);
 			if type_ == "offer" {
-				self._send_offer(godot_id, data);
+				self.send_offer(godot_id, data);
 			} else {
-				self._send_answer(godot_id, data);
+				self.send_answer(godot_id, data);
 			}
 		}
 	}
 
-	fn _offer_received(&mut self, godot_id: i32, offer: &str) {
+	fn offer_received(&mut self, godot_id: i32, offer: &str) {
 		if !self.rtc_mp.has_peer(godot_id) {
-			let mut peer = self._create_peer(godot_id);
+			let mut peer = self.create_peer(godot_id);
 			if self.rtc_mp.has_peer(godot_id) {
 				peer.set_remote_description("offer", offer);
 			} else {
 				error!("Failed to add peer, can't process offer");
 			}
-		} else {
-			if let Some(connection) = self.rtc_mp.get_peer(godot_id).get("connection")
-				&& let Ok(mut connection) = connection.try_to::<Gd<WebRtcPeerConnection>>()
-			{
-				connection.set_remote_description("offer", offer);
-				connection.create_offer();
-			}
+		} else if let Some(connection) = self.rtc_mp.get_peer(godot_id).get("connection")
+			&& let Ok(mut connection) = connection.try_to::<Gd<WebRtcPeerConnection>>()
+		{
+			connection.set_remote_description("offer", offer);
+			connection.create_offer();
 		}
 	}
 
-	fn _parse_msg(&mut self) -> bool {
+	#[allow(clippy::too_many_lines)]
+	fn parse_msg(&mut self) -> bool {
 		let packet = self.ws.get_packet();
 		let text = packet.get_string_from_utf8();
 		let parsed = Json::parse_string(&text);
@@ -374,24 +372,24 @@ impl AgduNet {
 				let Ok(peer_id_gstring) = peer_id_variant.try_to::<GString>() else {
 					return false;
 				};
-				self._own_server_peer_id = peer_id_gstring;
-				let peer_id_string = self._own_server_peer_id.to_string();
-				self._own_peer_id = self._assign_godot_id(peer_id_string.as_str(), self._is_host);
+				self.own_server_peer_id = peer_id_gstring;
+				let peer_id_string = self.own_server_peer_id.to_string();
+				self.own_peer_id = self.assign_godot_id(peer_id_string.as_str(), self.is_host);
 				info!(
 					"Joined room. Server ID: {peer_id_string}, Godot ID: {}",
-					self._own_peer_id,
+					self.own_peer_id,
 				);
 				let mut message = VarDictionary::new();
-				if self._is_host {
+				if self.is_host {
 					let _ = message.insert(&"type".to_godot_owned(), &"set_role".to_godot_owned());
 					let _ = message.insert(&"role".to_godot_owned(), &"host".to_godot_owned());
-					let _ = message.insert(&"password".to_godot_owned(), &self._lobby_password);
+					let _ = message.insert(&"password".to_godot_owned(), &self.lobby_password);
 				} else {
 					let _ = message.insert(&"type".to_godot_owned(), &"set_role".to_godot_owned());
 					let _ = message.insert(&"role".to_godot_owned(), &"client".to_godot_owned());
-					let _ = message.insert(&"password".to_godot_owned(), &self._lobby_password);
+					let _ = message.insert(&"password".to_godot_owned(), &self.lobby_password);
 				}
-				self._send_ws_message(&message);
+				self.send_ws_message(&message);
 			}
 
 			"peer_joined" => {
@@ -416,21 +414,21 @@ impl AgduNet {
 				info!("Peer joined. Server ID: {peer_id_gstring}, role: {role_gstring}");
 				match role_gstring.to_string().as_str() {
 					"host" => {
-						if peer_id_gstring == self._own_server_peer_id {
-							self._connected(1);
-							self._peer_connected(1);
+						if peer_id_gstring == self.own_server_peer_id {
+							self.connected(1);
+							self.peer_connected(1);
 						}
 					}
 
 					"client" => {
-						if peer_id_gstring == self._own_server_peer_id {
-							let own_godot_id = self._own_peer_id;
-							self._connected(own_godot_id);
-							self._peer_connected(own_godot_id);
+						if peer_id_gstring == self.own_server_peer_id {
+							let own_godot_id = self.own_peer_id;
+							self.connected(own_godot_id);
+							self.peer_connected(own_godot_id);
 						} else {
 							let godot_id =
-								self._assign_godot_id(peer_id_gstring.to_string().as_str(), false);
-							self._peer_connected(godot_id);
+								self.assign_godot_id(peer_id_gstring.to_string().as_str(), false);
+							self.peer_connected(godot_id);
 						}
 					}
 
@@ -449,10 +447,10 @@ impl AgduNet {
 					return false;
 				};
 				let peer_id_string = peer_id_gstring.to_string();
-				if let Some(godot_id) = self._get_godot_id(peer_id_string.as_str()) {
+				if let Some(godot_id) = self.get_godot_id(peer_id_string.as_str()) {
 					info!("Peer left: Godot ID {godot_id}");
-					self._peer_disconnected(godot_id);
-					self._remove_godot_id(peer_id_string.as_str());
+					self.peer_disconnected(godot_id);
+					self.remove_godot_id(peer_id_string.as_str());
 				}
 			}
 
@@ -467,7 +465,7 @@ impl AgduNet {
 					return false;
 				};
 				let from_peer_id_string = from_peer_id_gstring.to_string();
-				if let Some(from_godot_id) = self._get_godot_id(from_peer_id_string.as_str()) {
+				if let Some(from_godot_id) = self.get_godot_id(from_peer_id_string.as_str()) {
 					let Some(sdp_variant) = parsed.get("sdp") else {
 						return false;
 					};
@@ -478,7 +476,7 @@ impl AgduNet {
 						return false;
 					};
 					let sdp_string = sdp_gstring.to_string();
-					self._offer_received(from_godot_id, sdp_string.as_str());
+					self.offer_received(from_godot_id, sdp_string.as_str());
 				}
 			}
 
@@ -493,7 +491,7 @@ impl AgduNet {
 					return false;
 				};
 				let from_peer_id_string = from_peer_id_gstring.to_string();
-				if let Some(from_godot_id) = self._get_godot_id(from_peer_id_string.as_str()) {
+				if let Some(from_godot_id) = self.get_godot_id(from_peer_id_string.as_str()) {
 					let Some(sdp_variant) = parsed.get("sdp") else {
 						return false;
 					};
@@ -504,7 +502,7 @@ impl AgduNet {
 						return false;
 					};
 					let sdp_string = sdp_gstring.to_string();
-					self._answer_received(from_godot_id, sdp_string.as_str());
+					self.answer_received(from_godot_id, sdp_string.as_str());
 				}
 			}
 
@@ -519,7 +517,7 @@ impl AgduNet {
 					return false;
 				};
 				let from_peer_id_string = from_peer_id_gstring.to_string();
-				if let Some(from_godot_id) = self._get_godot_id(from_peer_id_string.as_str()) {
+				if let Some(from_godot_id) = self.get_godot_id(from_peer_id_string.as_str()) {
 					let Some(candidate_variant) = parsed.get("candidate") else {
 						return false;
 					};
@@ -531,23 +529,20 @@ impl AgduNet {
 					};
 					let candidate_string = candidate_gstring.to_string();
 					let mut sdp_mid_string = "0".to_owned();
-					if let Some(sdp_mid_variant) = parsed.get("sdp_mid") {
-						if sdp_mid_variant.get_type() == VariantType::STRING {
-							if let Ok(sdp_mid_gstring) = sdp_mid_variant.try_to::<GString>() {
-								sdp_mid_string = sdp_mid_gstring.to_string();
-							}
-						}
+					if let Some(sdp_mid_variant) = parsed.get("sdp_mid")
+						&& sdp_mid_variant.get_type() == VariantType::STRING
+						&& let Ok(sdp_mid_gstring) = sdp_mid_variant.try_to::<GString>()
+					{
+						sdp_mid_string = sdp_mid_gstring.to_string();
 					}
 					let mut sdp_mline_index = 0;
-					if let Some(sdp_mline_index_variant) = parsed.get("sdp_mline_index") {
-						if sdp_mline_index_variant.get_type() == VariantType::INT {
-							if let Ok(sdp_mline_index_i32) = sdp_mline_index_variant.try_to::<i32>()
-							{
-								sdp_mline_index = sdp_mline_index_i32;
-							}
-						}
+					if let Some(sdp_mline_index_variant) = parsed.get("sdp_mline_index")
+						&& sdp_mline_index_variant.get_type() == VariantType::INT
+						&& let Ok(sdp_mline_index_i32) = sdp_mline_index_variant.try_to::<i32>()
+					{
+						sdp_mline_index = sdp_mline_index_i32;
 					}
-					self._candidate_received(
+					self.candidate_received(
 						from_godot_id,
 						sdp_mid_string.as_str(),
 						sdp_mline_index,
@@ -595,32 +590,32 @@ impl AgduNet {
 		true
 	}
 
-	fn _peer_connected(&mut self, godot_id: i32) {
-		if self._is_host && godot_id != 1 {
+	fn peer_connected(&mut self, godot_id: i32) {
+		if self.is_host && godot_id != 1 {
 			if self.rtc_mp.get_connection_status() == ConnectionStatus::DISCONNECTED {
 				error!("rtc_mp still disconnected! Can't create peer.");
 				error!("This likely means _connected hasn't been called or failed.");
 			} else {
-				self._create_peer(godot_id);
+				self.create_peer(godot_id);
 			}
 		} else {
-			error!("Not creating peer (host={}, id={godot_id})", self._is_host);
+			error!("Not creating peer (host={}, id={godot_id})", self.is_host);
 		}
 	}
 
-	fn _peer_disconnected(&mut self, godot_id: i32) {
+	fn peer_disconnected(&mut self, godot_id: i32) {
 		info!("Peer disconnected: {godot_id}");
 		if self.rtc_mp.has_peer(godot_id) {
 			self.rtc_mp.remove_peer(godot_id);
 		}
 	}
 
-	fn _remove_godot_id(&mut self, server_id: &str) {
-		let _ = self._peer_id_map.remove(server_id);
+	fn remove_godot_id(&mut self, server_id: &str) {
+		let _ = self.peer_id_map.remove(server_id);
 	}
 
-	fn _send_answer(&mut self, godot_id: i32, answer: &str) -> GodotError {
-		let Some(server_id) = self._get_server_id(godot_id) else {
+	fn send_answer(&mut self, godot_id: i32, answer: &str) -> GodotError {
+		let Some(server_id) = self.get_server_id(godot_id) else {
 			error!("No server ID mapping for Godot ID {godot_id}",);
 			return GodotError::ERR_DOES_NOT_EXIST;
 		};
@@ -629,11 +624,11 @@ impl AgduNet {
 		let _ = message.insert(&"type".to_godot_owned(), &"sdp_answer".to_godot_owned());
 		let _ = message.insert(&"to".to_godot_owned(), &server_id.to_godot_owned());
 		let _ = message.insert(&"sdp".to_godot_owned(), answer);
-		self._send_ws_message(&message)
+		self.send_ws_message(&message)
 	}
 
-	fn _send_candidate(&mut self, godot_id: i32, mid: &str, index: i64, sdp: &str) -> GodotError {
-		let Some(server_id) = self._get_server_id(godot_id) else {
+	fn send_candidate(&mut self, godot_id: i32, mid: &str, index: i64, sdp: &str) -> GodotError {
+		let Some(server_id) = self.get_server_id(godot_id) else {
 			error!("No server ID mapping for Godot ID {godot_id}",);
 			return GodotError::ERR_DOES_NOT_EXIST;
 		};
@@ -644,13 +639,13 @@ impl AgduNet {
 		let _ = message.insert(&"candidate".to_godot_owned(), sdp);
 		let _ = message.insert(&"sdp_mid".to_godot_owned(), mid);
 		let _ = message.insert(&"sdp_mline_index".to_godot_owned(), index);
-		self._send_ws_message(&message)
+		self.send_ws_message(&message)
 	}
 
-	fn _send_keepalive_ping(&mut self) {
+	fn send_keepalive_ping(&mut self) {
 		let mut message = VarDictionary::new();
 		let _ = message.insert(&"type".to_godot_owned(), &"ping".to_godot_owned());
-		let err = self._send_ws_message(&message);
+		let err = self.send_ws_message(&message);
 		if err == GodotError::ERR_CONNECTION_ERROR {
 			let state = self.ws.get_ready_state();
 			if state != WebSocketPeerState::CONNECTING {
@@ -659,8 +654,8 @@ impl AgduNet {
 		}
 	}
 
-	fn _send_offer(&mut self, godot_id: i32, offer: &str) -> GodotError {
-		let Some(server_id) = self._get_server_id(godot_id) else {
+	fn send_offer(&mut self, godot_id: i32, offer: &str) -> GodotError {
+		let Some(server_id) = self.get_server_id(godot_id) else {
 			error!("No server ID mapping for Godot ID {godot_id}",);
 			return GodotError::ERR_DOES_NOT_EXIST;
 		};
@@ -669,10 +664,10 @@ impl AgduNet {
 		let _ = message.insert(&"type".to_godot_owned(), &"sdp_offer".to_godot_owned());
 		let _ = message.insert(&"to".to_godot_owned(), &server_id.to_godot_owned());
 		let _ = message.insert(&"sdp".to_godot_owned(), offer);
-		self._send_ws_message(&message)
+		self.send_ws_message(&message)
 	}
 
-	fn _send_ws_message(&mut self, message: &VarDictionary) -> GodotError {
+	fn send_ws_message(&mut self, message: &VarDictionary) -> GodotError {
 		if self.ws.get_ready_state() == WebSocketPeerState::OPEN {
 			let json = Json::stringify(&message.to_variant());
 			return self.ws.send_text(&json);
