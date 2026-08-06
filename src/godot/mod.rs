@@ -1,3 +1,5 @@
+pub mod net;
+
 use godot::{
 	classes::{
 		CanvasItem, Engine, Node, SceneTree, Viewport, Window,

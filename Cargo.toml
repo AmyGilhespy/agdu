@@ -1,6 +1,6 @@
 [package]
 name = "agdu"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2024"
 description = "Amy's Game Dev Utilities"
 repository = "https://github.com/AmyGilhespy/agdu"
@@ -17,13 +17,13 @@ bitvec = "1.1.1"
 dashmap = "6.2.1"
 diceware_wordlists = { version = "1.2.3", features = ["serde"] }
 fasteval = "0.2.4"
-godot = { version = "0.5.3", optional = true }
-lz4_flex = "0.13.1"
+godot = { version = "0.5.4", optional = true }
+lz4_flex = "0.14.0"
 nanoserde = "0.2.1"
-rand = "0.10.1"
-ron = "0.12.1"
-serde = { version = "1.0.228", features = ["derive", "serde_derive"] }
-thiserror = "2.0.18"
+rand = "0.10.2"
+ron = "0.12.2"
+serde = { version = "1.0.229", features = ["derive", "serde_derive"] }
+thiserror = "2.0.19"
 wyrand = "0.4.1"
 
 [features]
