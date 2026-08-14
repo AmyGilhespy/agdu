@@ -415,7 +415,6 @@ impl AgduNet {
 					"host" => {
 						if peer_id_gstring == self.own_server_peer_id {
 							self.connected(1);
-							// self.peer_connected(1);
 						}
 					}
 
@@ -423,11 +422,12 @@ impl AgduNet {
 						if peer_id_gstring == self.own_server_peer_id {
 							let own_godot_id = self.own_peer_id;
 							self.connected(own_godot_id);
-							self.peer_connected(own_godot_id);
 						} else {
 							let godot_id =
 								self.assign_godot_id(peer_id_gstring.to_string().as_str(), false);
-							self.peer_connected(godot_id);
+							if self.is_host {
+								self.peer_connected(godot_id);
+							}
 						}
 					}
 
