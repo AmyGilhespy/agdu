@@ -67,44 +67,40 @@ impl INode for AgduNet {
 	}
 
 	fn process(&mut self, _delta: f64) {
+		self.ws.poll();
+
 		let state = self.ws.get_ready_state();
-		if self.old_state == WebSocketPeerState::CLOSED && state == WebSocketPeerState::CLOSED {
-			if self.code != 1000 || !self.reason.is_empty() {
-				error!(
-					"WebSocket connection failed: {} - {}",
-					self.code, self.reason
-				);
-				self.disconnected();
-				self.old_state = state;
-				return;
-			}
 
-			self.ws.poll();
-			let state = self.ws.get_ready_state();
+		if state == WebSocketPeerState::OPEN
+			&& self.old_state != WebSocketPeerState::OPEN
+		{
+			info!("WebSocket connected to server");
+		}
 
-			if state == WebSocketPeerState::OPEN && self.old_state != WebSocketPeerState::OPEN {
-				info!("WebSocket connected to server");
-			}
+		while state == WebSocketPeerState::OPEN
+			&& self.ws.get_available_packet_count() > 0
+		{
+			let _ = self.parse_msg();
+		}
 
-			while state == WebSocketPeerState::OPEN && self.ws.get_available_packet_count() > 0 {
-				let _ = self.parse_msg();
-			}
+		if state == WebSocketPeerState::CLOSED
+			&& self.old_state != WebSocketPeerState::CLOSED
+		{
+			self.code = self.ws.get_close_code();
+			self.reason = self.ws.get_close_reason();
 
-			if state != self.old_state && state == WebSocketPeerState::CLOSED {
-				self.code = self.ws.get_close_code();
-				self.reason = self.ws.get_close_reason();
-				info!("WebSocket closed: {} - {}", self.code, self.reason);
-				self.disconnected();
-			}
+			info!("WebSocket closed: {} - {}", self.code, self.reason);
+			self.disconnected();
+		}
 
-			self.old_state = state;
+		self.old_state = state;
 
-			if self.keepalive_pings {
-				let now = Time::singleton().get_ticks_msec();
-				if now >= self.last_keepalive_ping + 30000 {
-					self.last_keepalive_ping = now;
-					self.send_keepalive_ping();
-				}
+		if self.keepalive_pings {
+			let now = Time::singleton().get_ticks_msec();
+
+			if now >= self.last_keepalive_ping + 30000 {
+				self.last_keepalive_ping = now;
+				self.send_keepalive_ping();
 			}
 		}
 	}
@@ -197,7 +193,10 @@ impl AgduNet {
 		self.code = 1000;
 		self.reason = "Unknown".to_godot_owned();
 		self.lobby_password = password.to_godot_owned();
-		self.ws.connect_to_url(url);
+		let result = self.ws.connect_to_url(url);
+		if result != GodotError::OK {
+			error!("Failed to start WebSocket connection: {result:?}");
+		}
 	}
 
 	fn connected(&mut self, godot_id: i32) {
@@ -422,7 +421,7 @@ impl AgduNet {
 					"host" => {
 						if peer_id_gstring == self.own_server_peer_id {
 							self.connected(1);
-							self.peer_connected(1);
+							// self.peer_connected(1);
 						}
 					}
 
