@@ -71,21 +71,15 @@ impl INode for AgduNet {
 
 		let state = self.ws.get_ready_state();
 
-		if state == WebSocketPeerState::OPEN
-			&& self.old_state != WebSocketPeerState::OPEN
-		{
+		if state == WebSocketPeerState::OPEN && self.old_state != WebSocketPeerState::OPEN {
 			info!("WebSocket connected to server");
 		}
 
-		while state == WebSocketPeerState::OPEN
-			&& self.ws.get_available_packet_count() > 0
-		{
+		while state == WebSocketPeerState::OPEN && self.ws.get_available_packet_count() > 0 {
 			let _ = self.parse_msg();
 		}
 
-		if state == WebSocketPeerState::CLOSED
-			&& self.old_state != WebSocketPeerState::CLOSED
-		{
+		if state == WebSocketPeerState::CLOSED && self.old_state != WebSocketPeerState::CLOSED {
 			self.code = self.ws.get_close_code();
 			self.reason = self.ws.get_close_reason();
 
