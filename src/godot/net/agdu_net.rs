@@ -11,7 +11,7 @@ use godot::global::Error as GodotError;
 use godot::{
 	builtin::VariantType,
 	classes::{
-		Json, MultiplayerPeer, Time, WebRtcMultiplayerPeer, WebRtcPeerConnection, WebSocketPeer,
+		Json, Time, WebRtcMultiplayerPeer, WebRtcPeerConnection, WebSocketPeer,
 		class_macros::private::virtuals::Os::{GString, VarDictionary},
 		multiplayer_peer::ConnectionStatus,
 	},
