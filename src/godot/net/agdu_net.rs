@@ -122,7 +122,7 @@ impl AgduNet {
 	fn toast(message: GString);
 
 	#[allow(dead_code)]
-	fn start(&mut self, url: &str, _room_code: &str, password: &str, as_host: bool) {
+	pub fn start(&mut self, url: &str, _room_code: &str, password: &str, as_host: bool) {
 		self.stop();
 		self.is_host = as_host;
 		info!(
@@ -133,7 +133,7 @@ impl AgduNet {
 		self.keepalive_pings = true;
 	}
 
-	fn stop(&mut self) {
+	pub fn stop(&mut self) {
 		let Some(mut multiplayer) = self.base().get_multiplayer() else {
 			return;
 		};
@@ -145,7 +145,7 @@ impl AgduNet {
 	}
 
 	#[allow(dead_code)]
-	fn stop_keepalive_pings(&mut self) {
+	pub fn stop_keepalive_pings(&mut self) {
 		self.keepalive_pings = false;
 	}
 
