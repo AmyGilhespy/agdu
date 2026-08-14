@@ -121,18 +121,20 @@ impl AgduNet {
 	#[signal]
 	fn toast(message: GString);
 
-	#[allow(dead_code)]
-	pub fn start(&mut self, url: &str, _room_code: &str, password: &str, as_host: bool) {
+	#[allow(clippy::needless_pass_by_value)]
+	#[func]
+	pub fn start(&mut self, url: GString, _room_code: GString, password: GString, as_host: bool) {
 		self.stop();
 		self.is_host = as_host;
 		info!(
 			"Starting as {}, connecting to: {url}",
 			if as_host { "host" } else { "client" }
 		);
-		self.connect_to_url(url, password);
+		self.connect_to_url(&url.to_string(), &password.to_string());
 		self.keepalive_pings = true;
 	}
 
+	#[func]
 	pub fn stop(&mut self) {
 		let Some(mut multiplayer) = self.base().get_multiplayer() else {
 			return;
@@ -144,7 +146,7 @@ impl AgduNet {
 		self.close();
 	}
 
-	#[allow(dead_code)]
+	#[func]
 	pub fn stop_keepalive_pings(&mut self) {
 		self.keepalive_pings = false;
 	}
