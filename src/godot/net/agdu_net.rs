@@ -116,6 +116,9 @@ impl AgduNet {
 	fn connection_successful();
 
 	#[signal]
+	fn disconnected();
+
+	#[signal]
 	fn toast(message: GString);
 
 	#[allow(dead_code)]
@@ -279,6 +282,7 @@ impl AgduNet {
 	fn disconnected(&mut self) {
 		info!("Disconnected: {}: {}", self.code, self.reason);
 		self.stop();
+		self.signals().connection_successful().emit();
 	}
 
 	fn get_godot_id(&self, server_id: &str) -> Option<i32> {
