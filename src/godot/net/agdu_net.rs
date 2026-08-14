@@ -418,7 +418,7 @@ impl AgduNet {
 				info!("Peer joined. Server ID: {peer_id_gstring}, role: {role_gstring}");
 				match role_gstring.to_string().as_str() {
 					"host" => {
-						let godot_id =
+						let _godot_id =
 							self.assign_godot_id(peer_id_gstring.to_string().as_str(), true);
 
 						if peer_id_gstring == self.own_server_peer_id {
