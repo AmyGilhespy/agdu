@@ -142,6 +142,7 @@ impl AgduNet {
 	}
 
 	fn answer_received(&mut self, godot_id: i32, answer: &str) {
+		info!("Received SDP answer from Godot peer {godot_id}");
 		if self.rtc_mp.has_peer(godot_id)
 			&& let Some(connection) = self.rtc_mp.get_peer(godot_id).get("connection")
 			&& let Ok(mut connection) = connection.try_to::<Gd<WebRtcPeerConnection>>()
@@ -202,6 +203,7 @@ impl AgduNet {
 
 		if result == GodotError::OK {
 			let Some(mut multiplayer) = self.base().get_multiplayer() else {
+				error!("No MultiplayerAPI!");
 				return;
 			};
 			multiplayer.set_multiplayer_peer(&self.rtc_mp);
@@ -268,7 +270,10 @@ impl AgduNet {
 		}
 
 		if self.is_host {
-			peer.create_offer();
+			let result = peer.create_offer();
+			if result != GodotError::OK {
+				error!("Failed to create offer for peer {godot_id}: {result:?}");
+			}
 		}
 
 		peer
@@ -413,6 +418,9 @@ impl AgduNet {
 				info!("Peer joined. Server ID: {peer_id_gstring}, role: {role_gstring}");
 				match role_gstring.to_string().as_str() {
 					"host" => {
+						let godot_id =
+							self.assign_godot_id(peer_id_gstring.to_string().as_str(), true);
+
 						if peer_id_gstring == self.own_server_peer_id {
 							self.connected(1);
 						}
@@ -464,6 +472,7 @@ impl AgduNet {
 					return false;
 				};
 				let from_peer_id_string = from_peer_id_gstring.to_string();
+
 				if let Some(from_godot_id) = self.get_godot_id(from_peer_id_string.as_str()) {
 					let Some(sdp_variant) = parsed.get("sdp") else {
 						return false;
