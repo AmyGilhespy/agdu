@@ -5,6 +5,7 @@
 #[allow(clippy::wildcard_imports)]
 use crate::{debugging::*, error, info};
 use ahash::AHashMap;
+use godot::classes::OfflineMultiplayerPeer;
 use godot::classes::web_socket_peer::State as WebSocketPeerState;
 use godot::global::Error as GodotError;
 use godot::{
@@ -129,8 +130,7 @@ impl AgduNet {
 		let Some(mut multiplayer) = self.base().get_multiplayer() else {
 			return;
 		};
-		let none: Option<&Gd<MultiplayerPeer>> = None;
-		multiplayer.set_multiplayer_peer(none);
+		multiplayer.set_multiplayer_peer(Some(&OfflineMultiplayerPeer::new_gd()));
 		self.rtc_mp.close();
 		self.rtc_mp = WebRtcMultiplayerPeer::new_gd();
 		self.close();
@@ -142,7 +142,6 @@ impl AgduNet {
 	}
 
 	fn answer_received(&mut self, godot_id: i32, answer: &str) {
-		info!("Received SDP answer from Godot peer {godot_id}");
 		if self.rtc_mp.has_peer(godot_id)
 			&& let Some(connection) = self.rtc_mp.get_peer(godot_id).get("connection")
 			&& let Ok(mut connection) = connection.try_to::<Gd<WebRtcPeerConnection>>()
