@@ -1,8 +1,20 @@
 use rand::RngExt;
 use wyrand::WyRand;
 
+const CODE: &str = "346789ABCDEFGHJKLMNPQRTUVWXY";
 const LOWER_CASE: &str = "0123456789abcdefghijklmnopqrstuvwxyz";
 const MIXED_CASE: &str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+pub fn random_code(wyrand: &mut WyRand, length: usize) -> String {
+	let charset = CODE;
+	let mut result = String::new();
+	for _index in 0..length {
+		result.push(char::from(
+			charset.as_bytes()[wyrand.random_range(0..charset.len())],
+		));
+	}
+	result
+}
 
 pub fn random_identifier(wyrand: &mut WyRand, length: usize, mixed_case: bool) -> String {
 	let charset = if mixed_case { MIXED_CASE } else { LOWER_CASE };
@@ -21,6 +33,15 @@ pub fn random_identifier(wyrand: &mut WyRand, length: usize, mixed_case: bool) -
 mod tests {
 	#[allow(unused_imports)]
 	use super::*;
+
+	#[test]
+	fn test_random_code() {
+		let mut wyrand = WyRand::new(1);
+		let code = random_code(&mut wyrand, 6);
+		assert_eq!(code, "PNXC7C");
+		let code = random_code(&mut wyrand, 0);
+		assert_eq!(code, "");
+	}
 
 	#[test]
 	fn test_random_identifier() {
