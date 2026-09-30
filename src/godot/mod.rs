@@ -51,7 +51,7 @@ where
 
 #[must_use]
 pub fn try_get_scene_root() -> Option<Gd<Window>> {
-	try_get_scene_tree().and_then(|s| s.get_root())
+	try_get_scene_tree().and_then(|s| Some(s.get_root()))
 }
 
 #[must_use]
